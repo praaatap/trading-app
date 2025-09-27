@@ -1,433 +1,750 @@
-import React, { FC, SVGProps, useEffect, useState, useMemo } from 'react';
-
+import React, { FC, SVGProps, useEffect, useState, useMemo, useRef } from 'react';
+import './homepage.css';
 // --- TYPE DEFINITIONS ---
-type Page = 'dashboard' | 'markets' | 'portfolio' | 'watchlist' | 'settings' | 'stock-detail';
-
 interface StockData {
     symbol: string;
     name: string;
-    ltp: number;
-    change: number;
-    changePercent: number;
-    volume: number;
-    open: number;
-    high: number;
-    low: number;
+    ltp: number; // Last Traded Price
+    changePercent: number; // 24h change
+    changePercent1h: number;
+    changePercent7d: number;
+    volume: number; // in currency value
+    marketCap: number;
+    circulatingSupply: number;
+    totalSupply: number;
+    logoUrl: string;
+    sparkline: number[];
 }
 
-interface IndexData {
-    name: string;
-    value: number;
-    change: number;
-    changePercent: number;
+interface MarketMetric {
+    title: string;
+    value: string;
+    change?: number;
+    sparkline?: number[];
+    gaugeValue?: number;
+    gaugeLabel?: string;
+    type: 'sparkline' | 'gauge' | 'progress' | 'promo';
+    progressValue?: number;
+    progressStartLabel?: string;
+    progressEndLabel?: string;
 }
 
-interface Holding {
-    symbol: string;
-    name: string;
-    quantity: number;
-    avgPrice: number;
-    currentPrice: number;
+interface OrderBookEntry {
+    price: number;
+    size: number;
+    total: number;
 }
 
+interface Trade {
+    time: string;
+    price: number;
+    amount: number;
+}
 
 // --- MOCK API & DATA HOOKS ---
-const nifty50_stocks: Omit<StockData, 'change' | 'changePercent' | 'volume' | 'high' | 'low'>[] = [
-    { symbol: 'RELIANCE', name: 'Reliance Industries', ltp: 2950.75, open: 2930.00 },
-    { symbol: 'TCS', name: 'Tata Consultancy', ltp: 3890.10, open: 3900.00 },
-    { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', ltp: 1580.45, open: 1575.00 },
-    { symbol: 'INFY', name: 'Infosys Ltd', ltp: 1550.00, open: 1560.00 },
-    { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', ltp: 1125.80, open: 1120.00 },
-    { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', ltp: 2450.50, open: 2440.00 },
-    { symbol: 'ITC', name: 'ITC Ltd', ltp: 430.25, open: 432.00 },
-    { symbol: 'SBIN', name: 'State Bank of India', ltp: 830.60, open: 825.00 },
-    { symbol: 'BHARTIARTL', name: 'Bharti Airtel', ltp: 1380.15, open: 1370.00 },
-    { symbol: 'LICI', name: 'Life Insurance Corp', ltp: 995.40, open: 1000.00 },
-    { symbol: 'BAJFINANCE', name: 'Bajaj Finance', ltp: 7200.70, open: 7180.00 },
-    { symbol: 'ADANIENT', name: 'Adani Enterprises', ltp: 3250.90, open: 3240.00 },
-    { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', ltp: 1750.20, open: 1760.00 },
-    { symbol: 'AXISBANK', name: 'Axis Bank', ltp: 1150.85, open: 1145.00 },
-    { symbol: 'MARUTI', name: 'Maruti Suzuki India', ltp: 12500.00, open: 12450.00 },
-    { symbol: 'LT', name: 'Larsen & Toubro', ltp: 3600.50, open: 3590.00 },
-    { symbol: 'ASIANPAINT', name: 'Asian Paints', ltp: 2900.00, open: 2880.00 },
-    { symbol: 'TATAMOTORS', name: 'Tata Motors', ltp: 980.70, open: 975.00 },
-    { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', ltp: 1500.30, open: 1490.00 },
-    { symbol: 'HCLTECH', name: 'HCL Technologies', ltp: 1450.60, open: 1440.00 },
-    { symbol: 'TITAN', name: 'Titan Company', ltp: 3500.00, open: 3480.00 },
-    { symbol: 'WIPRO', name: 'Wipro Ltd', ltp: 480.25, open: 482.00 },
-    { symbol: 'NTPC', name: 'NTPC Ltd', ltp: 360.50, open: 358.00 },
-    { symbol: 'POWERGRID', name: 'Power Grid Corp', ltp: 310.80, open: 308.00 },
-    { symbol: 'ULTRACEMCO', name: 'UltraTech Cement', ltp: 10500.00, open: 10450.00 },
-    { symbol: 'ONGC', name: 'Oil & Natural Gas Corp', ltp: 270.40, open: 268.00 },
-    { symbol: 'ADANIPORTS', name: 'Adani Ports & SEZ', ltp: 1350.90, open: 1340.00 },
-    { symbol: 'JSWSTEEL', name: 'JSW Steel', ltp: 920.10, open: 915.00 },
-    { symbol: 'TATASTEEL', name: 'Tata Steel', ltp: 170.60, open: 169.00 },
-    { symbol: 'COALINDIA', name: 'Coal India', ltp: 470.80, open: 468.00 },
-    { symbol: 'INDUSINDBK', name: 'IndusInd Bank', ltp: 1500.75, open: 1495.00 },
-    { symbol: 'HINDALCO', name: 'Hindalco Industries', ltp: 680.20, open: 675.00 },
-    { symbol: 'M&M', name: 'Mahindra & Mahindra', ltp: 2800.00, open: 2780.00 },
-    { symbol: 'SBILIFE', name: 'SBI Life Insurance', ltp: 1450.40, open: 1445.00 },
-    { symbol: 'GRASIM', name: 'Grasim Industries', ltp: 2400.50, open: 2390.00 },
-    { symbol: 'BAJAJFINSV', name: 'Bajaj Finserv', ltp: 1600.80, open: 1590.00 },
-    { symbol: 'EICHERMOT', name: 'Eicher Motors', ltp: 4800.90, open: 4780.00 },
-    { symbol: 'DRREDDY', name: 'Dr. Reddy\'s Labs', ltp: 6200.00, open: 6180.00 },
-    { symbol: 'CIPLA', name: 'Cipla Ltd', ltp: 1500.20, open: 1495.00 },
-    { symbol: 'SHREECEM', name: 'Shree Cement', ltp: 26000.00, open: 25900.00 }
-];
+const generateRandomSparkline = () => Array.from({ length: 70 }, () => Math.random() * 100 + 50);
+const generateSmallRandomSparkline = () => Array.from({ length: 30 }, () => Math.random() * 100);
 
-const initialStockData: StockData[] = nifty50_stocks.map(stock => {
-    const change = (stock.ltp - stock.open);
-    return {
-        ...stock,
-        change,
-        changePercent: (change / stock.open) * 100,
-        volume: Math.floor(100000 + Math.random() * 500000),
-        high: stock.ltp + Math.random() * (stock.open * 0.01),
-        low: stock.ltp - Math.random() * (stock.open * 0.01)
-    };
-});
-
-const initialIndexData: IndexData[] = [
-    { name: 'SENSEX', value: 75418.04, change: 234.31, changePercent: 0.31 },
-    { name: 'NIFTY 50', value: 22967.65, change: 75.95, changePercent: 0.33 },
-    { name: 'NIFTY BANK', value: 49281.90, change: -123.45, changePercent: -0.25 },
-];
-
-const initialHoldings: Holding[] = [
-    { symbol: 'RELIANCE', name: 'Reliance Industries', quantity: 50, avgPrice: 2800.50, currentPrice: 2850.75 },
-    { symbol: 'TCS', name: 'Tata Consultancy', quantity: 100, avgPrice: 3900.00, currentPrice: 3880.10 },
-    { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', quantity: 200, avgPrice: 1550.25, currentPrice: 1580.45 },
-    { symbol: 'INFY', name: 'Infosys Ltd', quantity: 150, avgPrice: 1600.00, currentPrice: 1550.00 },
+const initialStockData: StockData[] = [
+    { symbol: 'RELIANCE', name: 'Reliance Industries', ltp: 2950.75, changePercent: 0.42, changePercent1h: 0.13, changePercent7d: -5.72, volume: 15442790850, marketCap: 20000000000000, circulatingSupply: 6760000000, totalSupply: 6760000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=R', sparkline: generateRandomSparkline() },
+    { symbol: 'TCS', name: 'Tata Consultancy', ltp: 3890.10, changePercent: -0.14, changePercent1h: -0.05, changePercent7d: 1.88, volume: 4389010000, marketCap: 14000000000000, circulatingSupply: 3610000000, totalSupply: 3610000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=TCS', sparkline: generateRandomSparkline() },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank', ltp: 1580.45, changePercent: 0.52, changePercent1h: 0.21, changePercent7d: -10.49, volume: 12458045000, marketCap: 12000000000000, circulatingSupply: 7570000000, totalSupply: 7570000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=HDFC', sparkline: generateRandomSparkline() },
+    { symbol: 'INFY', name: 'Infosys', ltp: 1550.00, changePercent: -0.64, changePercent1h: -0.11, changePercent7d: -7.08, volume: 5455000000, marketCap: 6500000000000, circulatingSupply: 4190000000, totalSupply: 4190000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=I', sparkline: generateRandomSparkline() },
+    { symbol: 'ICICIBANK', name: 'ICICI Bank', ltp: 1125.80, changePercent: 0.22, changePercent1h: 0.08, changePercent7d: 3.13, volume: 9125800000, marketCap: 8000000000000, circulatingSupply: 7060000000, totalSupply: 7060000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=ICICI', sparkline: generateRandomSparkline() },
+    { symbol: 'SBIN', name: 'State Bank of India', ltp: 830.60, changePercent: 0.65, changePercent1h: 0.15, changePercent7d: 15.35, volume: 10830600000, marketCap: 7400000000000, circulatingSupply: 8920000000, totalSupply: 8920000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=SBI', sparkline: generateRandomSparkline() },
+    { symbol: 'BHARTIARTL', name: 'Bharti Airtel', ltp: 1380.15, changePercent: -0.81, changePercent1h: -0.25, changePercent7d: -4.24, volume: 3280150000, marketCap: 7800000000000, circulatingSupply: 5650000000, totalSupply: 5650000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=A', sparkline: generateRandomSparkline() },
+    { symbol: 'ITC', name: 'ITC Ltd', ltp: 430.25, changePercent: 0.21, changePercent1h: 0.01, changePercent7d: -0.02, volume: 2730250000, marketCap: 5300000000000, circulatingSupply: 12470000000, totalSupply: 12470000000, logoUrl: 'https://placehold.co/32x32/111827/FFFFFF?text=ITC', sparkline: generateRandomSparkline() },
 ];
 
 const useMockMarketUpdates = () => {
-    const [stocks, setStocks] = useState<StockData[]>(initialStockData);
-    const [indices, setIndices] = useState<IndexData[]>(initialIndexData);
-    const [holdings, setHoldings] = useState<Holding[]>(initialHoldings);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setStocks(currentStocks => currentStocks.map(stock => {
-                const changeFactor = (Math.random() - 0.5) * 0.005;
-                const change = stock.ltp * changeFactor;
-                const newLtp = stock.ltp + change;
-                const dayChange = newLtp - stock.open;
-                return {
-                    ...stock,
-                    ltp: newLtp,
-                    change: dayChange,
-                    changePercent: (dayChange / stock.open) * 100,
-                    high: Math.max(stock.high, newLtp),
-                    low: Math.min(stock.low, newLtp),
-                    volume: stock.volume + Math.floor(Math.random() * 1000),
-                };
-            }));
-
-            setIndices(currentIndices => currentIndices.map(index => {
-                const change = (Math.random() - 0.5) * (index.value * 0.001);
-                const newValue = index.value + change;
-                return {
-                    ...index,
-                    value: newValue,
-                    change,
-                    changePercent: (change / index.value) * 100,
-                };
-            }));
-
-             setHoldings(currentHoldings => currentHoldings.map(holding => {
-                 const relatedStock = stocks.find(s => s.symbol === holding.symbol);
-                 return { ...holding, currentPrice: relatedStock ? relatedStock.ltp : holding.currentPrice };
-            }));
-
-        }, 2000);
-        return () => clearInterval(interval);
-    }, [stocks]); // Dependency on stocks to update holdings correctly
-    
-    return { stocks, indices, holdings };
+    const [stocks] = useState<StockData[]>(initialStockData);
+    return { stocks };
 };
 
-// --- (SVG components remain the same as previous version) ---
-const DashboardIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> );
-const ChartIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> );
-const BriefcaseIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> );
-const EyeIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> );
-const SettingsIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> );
-const MenuIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg> );
-const BellIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> );
-const TrendingUpIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> );
-const SearchIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> );
-const ArrowLeftIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
+// --- SVG ICONS ---
+const SearchIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" /></svg> );
+const ChartBarIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 20 20" fill="currentColor"><path d="M11.983 1.904a.75.75 0 00-1.292-.748l-5.5 9.5a.75.75 0 00.646 1.096h2.213a.75.75 0 010 1.5H5.39a.75.75 0 00-.646 1.096l5.5 9.5a.75.75 0 001.292-.748L8.213 12.5H10.5a.75.75 0 010-1.5H7.787a.75.75 0 000-1.5h2.713a.75.75 0 010-1.5H6.965a.75.75 0 00-.646-1.096l-1.05-1.818L11.983 1.904z" /></svg>);
+const StarIcon: FC<SVGProps<SVGSVGElement>> = (props) => (<svg {...props} viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" strokeWidth="1"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>);
+const ChevronLeftIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" /></svg>);
+const CheckCircleIcon: FC<SVGProps<SVGSVGElement>> = (props) => (<svg {...props} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>);
 
 // --- UI COMPONENTS ---
-const SideNav: FC<{ currentPage: Page, setPage: (page: Page) => void, isSidebarOpen: boolean }> = ({ currentPage, setPage, isSidebarOpen }) => {
-    const navItems = [
-        { id: 'dashboard', icon: DashboardIcon, label: 'Dashboard' },
-        { id: 'markets', icon: ChartIcon, label: 'Markets' },
-        { id: 'portfolio', icon: BriefcaseIcon, label: 'Portfolio' },
-        { id: 'watchlist', icon: EyeIcon, label: 'Watchlist' },
-        { id: 'settings', icon: SettingsIcon, label: 'Settings' },
-    ];
-    return (
-        <aside className={`absolute md:relative z-20 h-full bg-[#0a0a0a] border-r border-white/10 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64' : 'w-20'} -translate-x-full md:translate-x-0`}>
-             <div className="flex items-center h-20 px-6 border-b border-white/10">
-                <TrendingUpIcon className="w-8 h-8 text-amber-400 flex-shrink-0"/>
-                <span className={`text-xl font-bold text-white whitespace-nowrap ml-2 transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>VyaparTrade</span>
-             </div>
-             <nav className="mt-4">
-                 {navItems.map((item) => (
-                      <button key={item.id} onClick={() => setPage(item.id as Page)} className={`flex items-center w-full py-3 px-6 text-gray-400 hover:bg-white/5 hover:text-white transition-colors relative ${currentPage === item.id ? 'text-white bg-white/5' : ''}`}>
-                        {currentPage === item.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400"></div>}
-                        <item.icon className="w-6 h-6" />
-                        <span className={`ml-4 whitespace-nowrap transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>{item.label}</span>
-                    </button>
-                 ))}
-             </nav>
-        </aside>
-    );
-};
 
-const BottomNav: FC<{ currentPage: Page, setPage: (page: Page) => void }> = ({ currentPage, setPage }) => {
-     const navItems = [
-        { id: 'dashboard', icon: DashboardIcon, label: 'Dashboard' },
-        { id: 'markets', icon: ChartIcon, label: 'Markets' },
-        { id: 'portfolio', icon: BriefcaseIcon, label: 'Portfolio' },
-        { id: 'watchlist', icon: EyeIcon, label: 'Watchlist' },
-    ];
-    return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-white/10 flex justify-around p-2 z-30">
-            {navItems.map(item => (
-                <button key={item.id} onClick={() => setPage(item.id as Page)} className={`flex flex-col items-center p-2 rounded-lg transition-colors w-1/4 ${currentPage === item.id ? 'text-amber-400' : 'text-gray-400'}`}>
-                    <item.icon className="w-6 h-6"/>
-                    <span className="text-xs mt-1">{item.label}</span>
-                </button>
-            ))}
-        </nav>
-    );
-};
-
-const TopNav: FC<{ onMenuClick: () => void }> = ({ onMenuClick }) => (
-     <header className="flex-shrink-0 bg-[#0a0a0a] flex items-center justify-between p-4 border-b border-white/10">
-         <div className="flex items-center">
-             <button onClick={onMenuClick} className="hidden md:block text-gray-400 mr-4"><MenuIcon className="w-6 h-6"/></button>
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input type="text" placeholder="Search (e.g. RELIANCE)" className="bg-black/20 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm w-40 md:w-64 focus:outline-none focus:ring-1 focus:ring-amber-400" />
+const Header: FC = () => (
+    <header className="bg-black/80 backdrop-blur-sm border-b border-gray-800/50 p-3 sticky top-0 z-50">
+        <div className="container mx-auto flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2 text-white text-lg font-bold">
+                    <ChartBarIcon className="w-6 h-6 text-blue-500"/>
+                    <span>VyaparTrade</span>
+                </div>
+                <nav className="hidden md:flex items-center space-x-5 text-sm font-semibold text-gray-300">
+                    <a href="#" className="hover:text-white">Stocks</a>
+                    <a href="#" className="hover:text-white">Exchanges</a>
+                    <a href="#" className="hover:text-white">Community</a>
+                    <a href="#" className="hover:text-white">Products</a>
+                </nav>
             </div>
-         </div>
-         <div className="flex items-center space-x-4">
-             <button className="hidden sm:block bg-amber-400 text-black font-bold px-4 py-2 rounded-lg text-sm hover:bg-amber-300 transition-colors duration-300 shadow-lg shadow-amber-500/10">
-                Quick Trade
-             </button>
-             <button className="relative text-gray-400 hover:text-white">
-                 <BellIcon className="w-6 h-6"/>
-                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0a0a]"></span>
-             </button>
-             <img src="https://placehold.co/40x40/0a0a0a/FFFFFF?text=A" alt="User" className="w-10 h-10 rounded-full" />
-         </div>
-     </header>
+            <div className="flex items-center space-x-3">
+                <div className="relative hidden sm:block">
+                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input type="text" placeholder="Search" className="bg-gray-900 border border-gray-700 rounded-lg py-1.5 pl-9 pr-4 text-sm w-40 md:w-56 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                </div>
+                <button className="border border-gray-700 text-white font-semibold px-4 py-1.5 rounded-lg text-sm hover:bg-gray-800 transition-colors">Log In</button>
+                <button className="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-lg text-sm hover:bg-blue-500 transition-colors">Sign Up</button>
+            </div>
+        </div>
+    </header>
 );
 
-const MarketIndexCard: FC<{ index: IndexData }> = ({ index }) => {
-    const isPositive = index.change >= 0;
+const SmallSparkline: FC<{ data: number[]; isPositive: boolean }> = ({ data, isPositive }) => {
+    const color = isPositive ? '#16C784' : '#EA3943';
+    const points = data.map((d, i) => `${(i / (data.length - 1)) * 100},${30 - (d / 100) * 25}`).join(' ');
+    return (<svg viewBox="0 0 100 30" className="w-full h-[30px]" preserveAspectRatio="none"><polyline fill="none" stroke={color} strokeWidth="1.5" points={points} /></svg>);
+};
+
+const Gauge: FC<{ value: number; label: string }> = ({ value, label }) => {
+    const rotation = -90 + (value / 100) * 180;
     return (
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-lg transition-all duration-300 hover:border-amber-400/50 hover:-translate-y-1">
-            <h3 className="text-sm font-semibold text-gray-400">{index.name}</h3>
-            <p className="text-2xl font-bold text-white">{index.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-            <p className={`text-sm font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {isPositive ? '+' : ''}{index.change.toFixed(2)} ({isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%)
-            </p>
+      <div className="relative w-24 h-12">
+        <svg viewBox="0 0 100 50" className="w-full h-full">
+          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#323546" strokeWidth="8" />
+          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#gradient)" strokeWidth="8" strokeDasharray="125.6" strokeDashoffset={125.6 - (value/100 * 125.6)} />
+          <defs>
+            <linearGradient id="gradient">
+              <stop offset="0%" stopColor="#EA3943" />
+              <stop offset="50%" stopColor="#F5A623" />
+              <stop offset="100%" stopColor="#16C784" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+                <div className="text-xl font-bold text-white">{value}</div>
+                <div className="text-xs text-gray-400">{label}</div>
+            </div>
+        </div>
+         <div className="absolute bottom-0 left-1/2 w-0.5 h-2 bg-white transition-transform duration-500" style={{ transformOrigin: 'bottom center', transform: `translateX(-50%) rotate(${rotation}deg)`}}></div>
+      </div>
+    );
+};
+
+const MarketMetricCard: FC<{ metric: MarketMetric }> = ({ metric }) => {
+    const isPositive = metric.change ? metric.change >= 0 : true;
+    
+    if (metric.type === 'promo') {
+      return (
+        <div className="bg-blue-500 rounded-lg p-4 flex-1 min-w-[200px] flex items-center justify-center text-white text-center">
+          <div>
+            <p className="font-bold">DEPOSIT, RELAX.</p>
+            <p>EARN✨24% PER YEAR</p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+        <div className="bg-[#1B1B1F] rounded-lg p-4 flex-1 min-w-[200px]">
+            <div className="text-sm text-gray-400 mb-2">{metric.title}</div>
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-xl font-bold text-white">{metric.value}</span>
+                {metric.change && (
+                     <span className={`text-sm font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                         {isPositive ? '▲' : '▼'} {Math.abs(metric.change).toFixed(2)}%
+                     </span>
+                )}
+            </div>
+            {metric.type === 'sparkline' && metric.sparkline && <SmallSparkline data={metric.sparkline} isPositive={isPositive} />}
+            {metric.type === 'gauge' && metric.gaugeValue && <div className="flex justify-center"><Gauge value={metric.gaugeValue} label={metric.gaugeLabel || ''} /></div>}
+            {metric.type === 'progress' && metric.progressValue && (
+                <div>
+                    <div className="w-full bg-gray-700 rounded-full h-1.5 my-2">
+                        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 h-1.5 rounded-full" style={{ width: `${metric.progressValue}%` }}></div>
+                    </div>
+                     <div className="flex justify-between text-xs text-gray-400">
+                         <span>{metric.progressStartLabel}</span>
+                         <span>{metric.progressEndLabel}</span>
+                     </div>
+                </div>
+            )}
         </div>
     );
 };
+
+const ProgressBar: FC<{ value: number; color: string }> = ({ value, color }) => (
+    <div className="w-full bg-gray-800 rounded-full h-1.5">
+        <div className={color} style={{ width: `${value}%` }}></div>
+    </div>
+);
 
 const StockChart: FC<{ stock: StockData }> = ({ stock }) => {
+    const { sparkline, changePercent } = stock;
+    const svgRef = useRef<SVGSVGElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 600, height: 300 });
+    const [tooltip, setTooltip] = useState<{ x: number; y: number; value: number } | null>(null);
+    
+    // Responsive dimensions
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                const containerWidth = containerRef.current.clientWidth;
+                const width = Math.max(containerWidth, 300);
+                const height = Math.max(width * 0.5, 250);
+                setDimensions({ width, height });
+            }
+        };
+
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+        
+        return () => window.removeEventListener('resize', updateDimensions);
+    }, []);
+
+    const isPositive = changePercent >= 0;
+    const strokeColor = isPositive ? '#16C784' : '#EA3943';
+    const gradientFrom = isPositive ? 'rgba(22, 199, 132, 0.2)' : 'rgba(234, 57, 67, 0.2)';
+    const gradientTo = isPositive ? 'rgba(22, 199, 132, 0.0)' : 'rgba(234, 57, 67, 0.0)';
+
+    const { width, height } = dimensions;
+    const padding = Math.max(20, width * 0.03);
+
+    const dataMin = Math.min(...sparkline);
+    const dataMax = Math.max(...sparkline);
+    const yRange = dataMax - dataMin || 1;
+
+    const getCoords = (value: number, index: number) => {
+        const x = (index / (sparkline.length - 1)) * (width - 2 * padding) + padding;
+        const y = height - padding - ((value - dataMin) / yRange) * (height - 2 * padding);
+        return { x, y };
+    };
+
+    const linePath = sparkline.map((val, i) => {
+        const { x, y } = getCoords(val, i);
+        return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+    }).join(' ');
+
+    const areaPath = `${linePath} V ${height - padding} H ${padding} Z`;
+    
+    const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+        if (!svgRef.current) return;
+        const svg = svgRef.current;
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        const index = Math.round(((x - padding) / (width - 2 * padding)) * (sparkline.length - 1));
+        
+        if (index >= 0 && index < sparkline.length) {
+            const value = sparkline[index];
+            const coords = getCoords(value, index);
+            setTooltip({ x: coords.x, y: coords.y, value });
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setTooltip(null);
+    };
+
     return (
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl h-[400px] lg:h-auto">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-white">{stock.symbol}</h2>
-                    <p className="text-sm text-gray-400">{stock.name}</p>
-                </div>
-                <div className="flex space-x-1 bg-black/30 p-1 rounded-md mt-2 sm:mt-0">
-                    {['1D', '5D', '1M', '6M', '1Y'].map(tf => (
-                        <button key={tf} className={`px-3 py-1 text-xs rounded-md transition-colors ${tf === '1D' ? 'bg-amber-400 text-black' : 'text-gray-400 hover:bg-white/10'}`}>{tf}</button>
+        <div ref={containerRef} className="relative w-full h-full min-h-[250px]">
+            <svg 
+                ref={svgRef} 
+                viewBox={`0 0 ${width} ${height}`}
+                width={width}
+                height={height}
+                onMouseMove={handleMouseMove} 
+                onMouseLeave={handleMouseLeave} 
+                className="w-full h-full"
+                preserveAspectRatio="xMidYMid meet"
+            >
+                <defs>
+                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={gradientFrom} />
+                        <stop offset="100%" stopColor={gradientTo} />
+                    </linearGradient>
+                </defs>
+                
+                {/* Background grid */}
+                <g className="grid-lines" stroke="#323546" strokeWidth="0.5" opacity="0.3">
+                    {/* Horizontal grid lines */}
+                    {[1, 2, 3, 4].map(i => (
+                        <line 
+                            key={`h-${i}`} 
+                            x1={padding} 
+                            y1={padding + (i * (height - 2 * padding) / 4)} 
+                            x2={width - padding} 
+                            y2={padding + (i * (height - 2 * padding) / 4)} 
+                        />
                     ))}
-                </div>
-            </div>
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
-                <p>Interactive Candlestick Chart for {stock.symbol} would be here.</p>
-                <img src={`https://placehold.co/800x400/0a0a0a/F59E0B?text=${stock.symbol}+Chart`} alt={`${stock.symbol} Chart`} className="w-full h-auto object-contain opacity-20"/>
-            </div>
+                    {/* Vertical grid lines */}
+                    {[1, 2, 3, 4].map(i => (
+                        <line 
+                            key={`v-${i}`} 
+                            x1={padding + (i * (width - 2 * padding) / 4)} 
+                            y1={padding} 
+                            x2={padding + (i * (width - 2 * padding) / 4)} 
+                            y2={height - padding} 
+                        />
+                    ))}
+                </g>
+
+                <path d={areaPath} fill="url(#areaGradient)" />
+                <path d={linePath} fill="none" stroke={strokeColor} strokeWidth="2" />
+
+                {tooltip && (
+                    <>
+                        <line 
+                            x1={tooltip.x} 
+                            y1={padding} 
+                            x2={tooltip.x} 
+                            y2={height - padding} 
+                            stroke="#888" 
+                            strokeWidth="1" 
+                            strokeDasharray="4 4" 
+                        />
+                        <circle 
+                            cx={tooltip.x} 
+                            cy={tooltip.y} 
+                            r="4" 
+                            fill={strokeColor} 
+                            stroke="white" 
+                            strokeWidth="2" 
+                        />
+                        <g transform={`translate(${tooltip.x + 10}, ${tooltip.y - 10})`}>
+                            <rect 
+                                x="0" 
+                                y="-15" 
+                                width="60" 
+                                height="20" 
+                                rx="4" 
+                                fill="#1B1B1F" 
+                                stroke="#333" 
+                            />
+                            <text 
+                                x="30" 
+                                y="0" 
+                                textAnchor="middle" 
+                                fill="#fff" 
+                                fontSize="12" 
+                                fontWeight="bold"
+                                dominantBaseline="middle"
+                            >
+                                {tooltip.value.toFixed(2)}
+                            </text>
+                        </g>
+                    </>
+                )}
+            </svg>
         </div>
     );
 };
 
-const TradePanel: FC<{ stock: StockData }> = ({ stock }) => {
-    const [orderType, setOrderType] = useState<'buy' | 'sell'>('buy');
+const OrderBook: FC<{ asks: OrderBookEntry[], bids: OrderBookEntry[], ltp: number }> = ({ asks, bids, ltp }) => {
+    const maxTotal = useMemo(() => {
+        const allTotals = [...asks.map(a => a.total), ...bids.map(b => b.total)];
+        return Math.max(...allTotals);
+    }, [asks, bids]);
+
+    const OrderRow = ({ entry, type }: { entry: OrderBookEntry, type: 'ask' | 'bid' }) => {
+        const percent = (entry.total / maxTotal) * 100;
+        const isAsk = type === 'ask';
+        return (
+            <div className={`relative flex justify-between text-xs p-1 ${isAsk ? 'hover:bg-red-900/20' : 'hover:bg-green-900/20'}`}>
+                <div className="absolute top-0 bottom-0 right-0 bg-gradient-to-l from-red-500/20 to-transparent" style={{ width: `${isAsk ? percent : 0}%` }}></div>
+                <div className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-green-500/20 to-transparent" style={{ width: `${!isAsk ? percent : 0}%` }}></div>
+                <span className={isAsk ? 'text-red-400' : 'text-green-400'}>{entry.price.toFixed(2)}</span>
+                <span className="text-gray-300">{entry.size.toLocaleString()}</span>
+                <span className="text-gray-400">{entry.total.toLocaleString()}</span>
+            </div>
+        );
+    };
+
     return (
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 p-6 rounded-xl">
-             <div className="bg-black/20 p-1 rounded-lg flex items-center mb-6 border border-white/10">
-                <button onClick={() => setOrderType('buy')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all duration-300 ${orderType === 'buy' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>BUY</button>
-                <button onClick={() => setOrderType('sell')} className={`flex-1 py-2 text-sm font-bold rounded-md transition-all duration-300 ${orderType === 'sell' ? 'bg-red-600 text-white' : 'text-gray-400'}`}>SELL</button>
-            </div>
-            <form className="space-y-4">
-                <div>
-                    <label className="text-xs text-gray-400">Quantity</label>
-                    <input type="number" defaultValue="10" className="w-full mt-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-amber-400"/>
-                </div>
-                 <div>
-                    <label className="text-xs text-gray-400">Price</label>
-                    <input type="text" readOnly value={`Market (~₹${stock.ltp.toFixed(2)})`} className="w-full mt-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-gray-400"/>
-                </div>
-                <button type="submit" className={`w-full font-bold py-3 rounded-lg transition-colors ${orderType === 'buy' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
-                    Place {orderType === 'buy' ? 'Buy' : 'Sell'} Order
-                </button>
-            </form>
+        <div className="bg-[#1B1B1F] rounded-lg border border-gray-800 p-3 text-gray-300 flex-grow min-h-[300px]">
+             <div className="flex justify-between text-xs font-semibold text-gray-500 px-1 mb-2">
+                 <span>Price (₹)</span>
+                 <span>Size</span>
+                 <span>Total</span>
+             </div>
+             <div className="max-h-[140px] overflow-y-auto">
+                 {asks.slice(0, 7).reverse().map(ask => <OrderRow key={ask.price} entry={ask} type="ask" />)}
+             </div>
+             <div className="py-3 text-center text-lg font-bold text-green-400 border-y border-gray-700 my-2">
+                 {ltp.toFixed(2)}
+             </div>
+             <div className="max-h-[140px] overflow-y-auto">
+                 {bids.slice(0, 7).map(bid => <OrderRow key={bid.price} entry={bid} type="bid" />)}
+             </div>
         </div>
     );
 };
 
-const StockDetailPage: FC<{ stock: StockData; onBack: () => void }> = ({ stock, onBack }) => (
-    <div className="p-4 md:p-6">
-        <button onClick={onBack} className="flex items-center text-sm text-amber-400 hover:text-amber-300 mb-6">
-            <ArrowLeftIcon className="w-4 h-4 mr-2" />
-            Back to Markets
-        </button>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-                <StockChart stock={stock} />
-            </div>
-            <div>
-                <TradePanel stock={stock} />
-            </div>
+const RecentTrades: FC<{ trades: Trade[] }> = ({ trades }) => (
+    <div className="bg-[#1B1B1F] rounded-lg border border-gray-800 p-3 text-gray-300 flex-grow min-h-[300px]">
+        <div className="flex justify-between text-xs font-semibold text-gray-500 px-1 mb-2">
+            <span className="text-left">Time</span>
+            <span className="text-center">Price (₹)</span>
+            <span className="text-right">Amount</span>
+        </div>
+        <div className="max-h-[250px] overflow-y-auto">
+            {trades.map((trade, i) => (
+                <div key={i} className="flex justify-between text-xs p-1 hover:bg-gray-800/50">
+                    <span className="text-gray-400 text-left flex-1">{trade.time}</span>
+                    <span className={`text-center flex-1 ${i % 2 === 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {trade.price.toFixed(2)}
+                    </span>
+                    <span className="text-right flex-1">{trade.amount.toLocaleString()}</span>
+                </div>
+            ))}
         </div>
     </div>
 );
 
-const MarketsPage: FC<{ stocks: StockData[]; onStockSelect: (symbol: string) => void; }> = ({ stocks, onStockSelect }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const filteredStocks = useMemo(() => 
-        stocks.filter(s => 
-            s.symbol.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            s.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [stocks, searchTerm]);
-
-    return (
-        <div className="p-4 md:p-6">
-            <h1 className="text-2xl font-bold text-white mb-4">Markets</h1>
-            <div className="mb-4">
-                 <input 
-                    type="text" 
-                    placeholder="Search stocks..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-black/20 border border-white/10 rounded-lg py-2 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400" 
-                />
-            </div>
-            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl">
-                 <ul className="divide-y divide-white/10">
-                    {filteredStocks.map(stock => {
-                        const isPositive = stock.change >= 0;
-                        return (
-                            <li key={stock.symbol} onClick={() => onStockSelect(stock.symbol)} className="p-4 flex justify-between items-center hover:bg-white/5 cursor-pointer transition-colors">
-                                <div>
-                                    <p className="font-semibold text-white">{stock.symbol}</p>
-                                    <p className="text-xs text-gray-400">{stock.name}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-mono text-white">₹{stock.ltp.toFixed(2)}</p>
-                                    <p className={`text-sm font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                                        {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                                    </p>
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </div>
-        </div>
-    );
-};
-
-const DashboardPage: FC<{ marketData: IndexData[], holdings: Holding[] }> = ({ marketData, holdings }) => {
-    const totalInvested = useMemo(() => holdings.reduce((acc, h) => acc + h.avgPrice * h.quantity, 0), [holdings]);
-    const currentValue = useMemo(() => holdings.reduce((acc, h) => acc + h.currentPrice * h.quantity, 0), [holdings]);
-    const todayPNL = useMemo(() => currentValue - totalInvested, [currentValue, totalInvested]);
-
-    return (
-        <div className="p-4 md:p-6 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {marketData.map(index => <MarketIndexCard key={index.name} index={index} />)}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl">
-                     <h3 className="text-sm font-semibold text-gray-400">Total Investment</h3>
-                     <p className="text-2xl font-bold text-white">₹{totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
-                 </div>
-                  <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl">
-                     <h3 className="text-sm font-semibold text-gray-400">Current Value</h3>
-                     <p className="text-2xl font-bold text-white">₹{currentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
-                 </div>
-                  <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-xl">
-                     <h3 className="text-sm font-semibold text-gray-400">Total P&L</h3>
-                     <p className={`text-2xl font-bold ${todayPNL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {todayPNL >= 0 ? '+' : ''}₹{todayPNL.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                     </p>
-                 </div>
-            </div>
-        </div>
-    );
-};
-const PortfolioPage: FC<{ holdings: Holding[] }> = ({ holdings }) => { return (<div className="p-4 md:p-6"><h1 className="text-2xl font-bold text-white mb-6">My Portfolio</h1></div>)};
-const PlaceholderPage: FC<{ title: string }> = ({ title }) => ( <div className="p-4 md:p-6"><h1 className="text-2xl font-bold text-white">{title}</h1><p className="text-gray-500 mt-4">This is a placeholder page for the {title} section.</p></div>);
-
-// --- MAIN APP COMPONENT ---
-const VyaparTradeDashboard: FC = () => {
-    const { stocks, indices, holdings } = useMockMarketUpdates();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-    const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
+const OrderEntry: FC<{ stock: StockData; balance: number; onPlaceOrder: (total: number) => void }> = ({ stock, balance, onPlaceOrder }) => {
+    const [orderType, setOrderType] = useState<'market' | 'limit'>('limit');
+    const [side, setSide] = useState<'buy' | 'sell'>('buy');
+    const [price, setPrice] = useState(stock.ltp.toFixed(2));
+    const [amount, setAmount] = useState('');
+    const [total, setTotal] = useState('');
+    const [message, setMessage] = useState('');
 
     useEffect(() => {
-        const handleResize = () => setIsSidebarOpen(window.innerWidth >= 768);
-        window.addEventListener('resize', handleResize);
-        handleResize();
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        setPrice(stock.ltp.toFixed(2));
+        setAmount('');
+        setTotal('');
+    }, [stock, side]);
 
-    const handleStockSelect = (symbol: string) => {
-        const stock = stocks.find(s => s.symbol === symbol);
-        if (stock) {
-            setSelectedStock(stock);
-            setCurrentPage('stock-detail');
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newAmount = e.target.value;
+        setAmount(newAmount);
+        if (price && newAmount) {
+            setTotal((parseFloat(price) * parseFloat(newAmount)).toFixed(2));
+        } else {
+            setTotal('');
         }
     };
     
-    const renderPage = () => {
-        switch(currentPage) {
-            case 'dashboard': return <DashboardPage marketData={indices} holdings={holdings} />;
-            case 'markets': return <MarketsPage stocks={stocks} onStockSelect={handleStockSelect} />;
-            case 'stock-detail': return selectedStock ? <StockDetailPage stock={selectedStock} onBack={() => setCurrentPage('markets')} /> : <MarketsPage stocks={stocks} onStockSelect={handleStockSelect} />;
-            case 'portfolio': return <PortfolioPage holdings={holdings} />;
-            case 'watchlist': return <PlaceholderPage title="Watchlist" />;
-            case 'settings': return <PlaceholderPage title="Settings" />;
-            default: return <DashboardPage marketData={indices} holdings={holdings} />;
+    const handleTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTotal = e.target.value;
+        setTotal(newTotal);
+        if (price && newTotal) {
+            setAmount((parseFloat(newTotal) / parseFloat(price)).toFixed(6));
+        } else {
+            setAmount('');
         }
     };
 
-    return (
-        <div className="bg-[#0f111a] text-gray-200 font-['Inter',_sans_serif] h-screen flex overflow-hidden">
-            <SideNav currentPage={currentPage} setPage={setCurrentPage} isSidebarOpen={isSidebarOpen} />
-            <div className="flex-1 flex flex-col">
-                <TopNav onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
-                <main className="flex-grow overflow-y-auto pb-16 md:pb-0">
-                    {renderPage()}
-                </main>
+    const handlePlaceOrder = () => {
+        const orderTotal = parseFloat(total);
+        if (!orderTotal || orderTotal <= 0) {
+            setMessage('Please enter a valid amount.');
+            setTimeout(() => setMessage(''), 3000);
+            return;
+        }
+        if (side === 'buy' && orderTotal > balance) {
+            setMessage('Insufficient funds.');
+            setTimeout(() => setMessage(''), 3000);
+            return;
+        }
+
+        onPlaceOrder(side === 'buy' ? -orderTotal : orderTotal);
+        setMessage(`Successfully placed ${side} order!`);
+        setAmount('');
+        setTotal('');
+        setTimeout(() => setMessage(''), 3000);
+    };
+
+    return(
+        <div className="bg-[#1B1B1F] rounded-lg border border-gray-800 p-4 text-gray-300">
+            <div className="flex border-b border-gray-700 mb-4">
+                <button onClick={() => setSide('buy')} className={`flex-1 py-2 text-sm font-semibold ${side === 'buy' ? 'text-green-400 border-b-2 border-green-400' : 'text-gray-500'}`}>Buy</button>
+                <button onClick={() => setSide('sell')} className={`flex-1 py-2 text-sm font-semibold ${side === 'sell' ? 'text-red-400 border-b-2 border-red-400' : 'text-gray-500'}`}>Sell</button>
             </div>
-            <BottomNav currentPage={currentPage} setPage={setCurrentPage} />
+            <div className="flex space-x-2 mb-4">
+                 <button onClick={() => setOrderType('limit')} className={`flex-1 py-1.5 text-xs rounded ${orderType === 'limit' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}>Limit</button>
+                 <button onClick={() => setOrderType('market')} className={`flex-1 py-1.5 text-xs rounded ${orderType === 'market' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}>Market</button>
+            </div>
+            <div className="mb-3 text-xs text-gray-400">
+                Available Funds: <span className="font-semibold text-white">₹{balance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </div>
+             <div className="space-y-3 text-sm">
+                {orderType === 'limit' && (
+                    <div className="flex items-center">
+                        <label className="w-1/3 text-gray-400">Price</label>
+                        <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-2/3 bg-gray-900 border border-gray-700 rounded p-1.5 text-right focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                )}
+                 <div className="flex items-center">
+                    <label className="w-1/3 text-gray-400">Amount ({stock.symbol})</label>
+                    <input type="number" placeholder="0.00" value={amount} onChange={handleAmountChange} className="w-2/3 bg-gray-900 border border-gray-700 rounded p-1.5 text-right focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                </div>
+                 <div className="flex items-center">
+                    <label className="w-1/3 text-gray-400">Total (₹)</label>
+                    <input type="number" placeholder="0.00" value={total} onChange={handleTotalChange} className="w-2/3 bg-gray-900 border border-gray-700 rounded p-1.5 text-right focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                </div>
+            </div>
+            <button onClick={handlePlaceOrder} className={`w-full mt-4 py-2.5 rounded font-semibold text-white transition-colors ${side === 'buy' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
+                {side === 'buy' ? 'Buy ' : 'Sell '}{stock.symbol}
+            </button>
+            {message && (
+                <div className={`mt-3 p-2 rounded-md text-sm text-center flex items-center justify-center ${message.startsWith('Successfully') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                   {message.startsWith('Successfully') && <CheckCircleIcon className="w-5 h-5 mr-2" />}
+                    {message}
+                </div>
+            )}
         </div>
     );
 }
 
-export default VyaparTradeDashboard;
+const StockDetailPage: FC<{ stock: StockData; onBack: () => void; balance: number; onPlaceOrder: (total: number) => void; }> = ({ stock, onBack, balance, onPlaceOrder }) => {
+    const isPositive = stock.changePercent >= 0;
 
+    // Mock data for order book and trades
+    const [orderBook, setOrderBook] = useState<{ asks: OrderBookEntry[], bids: OrderBookEntry[] }>({ asks: [], bids: [] });
+    const [trades, setTrades] = useState<Trade[]>([]);
+
+    useEffect(() => {
+        const generateOrderBook = () => {
+            let asks: OrderBookEntry[] = [];
+            let bids: OrderBookEntry[] = [];
+            let lastAsk = stock.ltp + 0.05;
+            let lastBid = stock.ltp - 0.05;
+            let askTotal = 0;
+            let bidTotal = 0;
+            for(let i=0; i<15; i++){
+                const askSize = Math.random() * 1000 + 50;
+                askTotal += askSize;
+                asks.push({ price: lastAsk, size: askSize, total: askTotal });
+                lastAsk += (Math.random() * 0.1 + 0.05);
+
+                const bidSize = Math.random() * 1000 + 50;
+                bidTotal += bidSize;
+                bids.push({ price: lastBid, size: bidSize, total: bidTotal });
+                lastBid -= (Math.random() * 0.1 + 0.05);
+            }
+            setOrderBook({ asks, bids });
+        };
+        
+        const generateTrades = () => {
+            let newTrades: Trade[] = [];
+            const now = new Date();
+            for(let i=0; i<20; i++){
+                now.setSeconds(now.getSeconds() - Math.floor(Math.random() * 5));
+                newTrades.push({
+                    time: now.toLocaleTimeString(),
+                    price: stock.ltp + (Math.random() - 0.5) * 0.5,
+                    amount: Math.random() * 500 + 10,
+                })
+            }
+            setTrades(newTrades);
+        };
+        
+        generateOrderBook();
+        generateTrades();
+    }, [stock.ltp]);
+
+    return (
+        <main className="container mx-auto p-4 animate-fade-in">
+            <div className="mb-4">
+                 <button onClick={onBack} className="flex items-center space-x-2 text-gray-400 hover:text-white font-semibold transition-colors">
+                     <ChevronLeftIcon className="w-5 h-5" />
+                     <span>Back to Dashboard</span>
+                 </button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 bg-[#1B1B1F] rounded-xl p-3 sm:p-4 border border-gray-800">
+                <div className="flex items-center space-x-3 mb-3 sm:mb-0 w-full sm:w-auto">
+                    <img src={stock.logoUrl} alt={stock.name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full" />
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-lg sm:text-xl font-bold text-white truncate">
+                            {stock.name} <span className="text-gray-400">{stock.symbol}</span>
+                        </h2>
+                         <p className="text-base sm:text-lg font-semibold text-white">
+                            ₹{stock.ltp.toLocaleString('en-IN')}
+                            <span className={`ml-2 sm:ml-3 text-sm font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                                {isPositive ? '▲' : '▼'} {Math.abs(stock.changePercent).toFixed(2)}%
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                 <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                     <button className="bg-gray-800 text-white font-semibold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm hover:bg-gray-700 transition-colors w-full sm:w-auto">Add to Watchlist</button>
+                     <button className="bg-blue-600 text-white font-semibold px-4 py-1.5 sm:px-6 sm:py-2 rounded-lg text-xs sm:text-sm hover:bg-blue-500 transition-colors w-full sm:w-auto">Trade</button>
+                 </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+                <div className="xl:col-span-8 space-y-4">
+                     <div className="bg-[#1B1B1F] rounded-xl p-4 border border-gray-800 min-h-[350px]">
+                         <StockChart stock={stock} />
+                    </div>
+                     <OrderEntry stock={stock} balance={balance} onPlaceOrder={onPlaceOrder} />
+                </div>
+                <div className="xl:col-span-4 space-y-4">
+                    <OrderBook asks={orderBook.asks} bids={orderBook.bids} ltp={stock.ltp} />
+                    <RecentTrades trades={trades} />
+                </div>
+            </div>
+        </main>
+    );
+};
+
+const StockTable: FC<{ stocks: StockData[]; watchlist: string[]; onToggleWatchlist: (symbol: string) => void; onStockSelect: (stock: StockData) => void; }> = ({ stocks, watchlist, onToggleWatchlist, onStockSelect }) => {
+    const formatCurrency = (value: number) => `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatLargeNumber = (value: number) => {
+        if (value >= 1_00_00_00_00_000) return `₹${(value / 1_00_00_00_00_000).toFixed(2)}T`;
+        return `₹${(value / 1_00_00_000).toFixed(2)}Cr`;
+    };
+    
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+                <thead className="text-xs text-gray-400 font-semibold">
+                    <tr className="border-b border-gray-800">
+                        {['', '#', 'Name', 'Price', '1h %', '24h %', '7d %', 'Market Cap', 'Volume(24h)', 'Circulating Supply', 'Last 7 Days'].map(h => (
+                          <th key={h} className={`p-3 ${h === 'Name' ? 'text-left' : 'text-right'}`}>{h}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {stocks.map((stock, index) => {
+                        const isPositive24h = stock.changePercent >= 0;
+                        const isPositive1h = stock.changePercent1h >= 0;
+                        const isPositive7d = stock.changePercent7d >= 0;
+                        const supplyPercent = (stock.circulatingSupply / stock.totalSupply) * 100;
+                        const inWatchlist = watchlist.includes(stock.symbol);
+
+                        return (
+                            <tr key={stock.symbol} className="border-b border-gray-800 hover:bg-gray-900/50 cursor-pointer" onClick={() => onStockSelect(stock)}>
+                                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <button onClick={() => onToggleWatchlist(stock.symbol)} className="text-gray-600 hover:text-yellow-400 transition-colors">
+                                    <StarIcon className={`w-5 h-5 ${inWatchlist ? 'text-yellow-400 fill-yellow-400' : 'fill-transparent'}`} />
+                                  </button>
+                                </td>
+                                <td className="p-3 text-right text-gray-400">{index + 1}</td>
+                                <td className="p-3">
+                                    <div className="flex items-center space-x-3">
+                                        <img src={stock.logoUrl} alt={stock.name} className="w-8 h-8 rounded-full" />
+                                        <div className="font-semibold">
+                                            <p className="text-white">{stock.name}</p>
+                                            <p className="text-gray-500 text-xs">{stock.symbol}</p>
+                                        </div>
+                                        <button className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-md hover:bg-blue-600 transition-colors" onClick={(e) => e.stopPropagation()}>Buy</button>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-right font-semibold text-white">{formatCurrency(stock.ltp)}</td>
+                                {[
+                                    {val: stock.changePercent1h, isPos: isPositive1h}, 
+                                    {val: stock.changePercent, isPos: isPositive24h}, 
+                                    {val: stock.changePercent7d, isPos: isPositive7d}
+                                ].map(({val, isPos}, i) => (
+                                    <td key={i} className={`p-3 text-right font-semibold ${isPos ? 'text-green-500' : 'text-red-500'}`}>
+                                        {isPos ? '▲' : '▼'} {Math.abs(val).toFixed(2)}%
+                                    </td>
+                                ))}
+                                <td className="p-3 text-right text-white font-semibold">{formatLargeNumber(stock.marketCap)}</td>
+                                <td className="p-3 text-right text-white font-semibold">{formatCurrency(stock.volume)}</td>
+                                <td className="p-3 text-right text-white font-semibold">
+                                    <span>{stock.circulatingSupply.toLocaleString('en-IN')} {stock.symbol}</span>
+                                    <ProgressBar value={supplyPercent} color="bg-gray-500 h-1.5 rounded-full mt-1" />
+                                </td>
+                                <td className="p-3 w-40">
+                                    <div className="h-12"><SmallSparkline data={stock.sparkline} isPositive={isPositive24h} /></div>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+
+// --- MAIN DASHBOARD COMPONENT ---
+const CoinMarketCapBlackDashboard: FC = () => {
+    const { stocks } = useMockMarketUpdates();
+    const [activeTab, setActiveTab] = useState('Top');
+    const [watchlist, setWatchlist] = useState<string[]>(['RELIANCE', 'TCS']);
+    const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
+    const [currentPage, setCurrentPage] = useState('dashboard');
+    const [balance, setBalance] = useState(100000);
+
+    const toggleWatchlist = (symbol: string) => {
+        setWatchlist(prev => 
+            prev.includes(symbol) 
+                ? prev.filter(s => s !== symbol) 
+                : [...prev, symbol]
+        );
+    };
+    
+    const handleStockSelect = (stock: StockData) => {
+        setSelectedStock(stock);
+        setCurrentPage('detail');
+    };
+    const handleBackToDashboard = () => {
+        setSelectedStock(null);
+        setCurrentPage('dashboard');
+    };
+    
+    const handlePlaceOrder = (totalChange: number) => {
+        setBalance(prev => prev + totalChange);
+    };
+
+    const displayedStocks = useMemo(() => {
+        if (activeTab === '⭐ Watchlist') {
+            return stocks.filter(stock => watchlist.includes(stock.symbol));
+        }
+        return stocks;
+    }, [stocks, activeTab, watchlist]);
+
+    const marketMetrics: MarketMetric[] = useMemo(() => {
+        const totalMarketCap = stocks.reduce((acc, stock) => acc + stock.marketCap, 0);
+        return [
+            { title: 'Market Cap', value: `₹${(totalMarketCap / 1_00_00_00_00_000).toFixed(2)}T`, change: 1.23, sparkline: generateSmallRandomSparkline(), type: 'sparkline' },
+            { title: 'NIFTY 50', value: `22,967.65`, change: -1.14, sparkline: generateSmallRandomSparkline(), type: 'sparkline' },
+            { title: 'Fear & Greed', value: '34', gaugeValue: 34, gaugeLabel: "Fear", type: 'gauge' },
+            { title: 'Altcoin Season', value: '69', progressValue: 69, progressStartLabel: 'Bitcoin', progressEndLabel: 'Altcoin', type: 'progress' },
+            { title: 'Average RSI', value: '44.47', progressValue: 44.47, progressStartLabel: 'Oversold', progressEndLabel: 'Overbought', type: 'progress' },
+            { title: 'Promo', value: '', type: 'promo' },
+        ];
+    }, [stocks]);
+    
+    return (
+        <div className="bg-[#0D0D0F] text-gray-300 min-h-screen font-sans">
+            <Header />
+
+            {currentPage === 'dashboard' ? (
+                 <main className="container mx-auto p-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {marketMetrics.map(metric => <MarketMetricCard key={metric.title} metric={metric} />)}
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 border-b border-gray-800 overflow-x-auto no-scrollbar">
+                        {['⭐ Watchlist', 'Top', 'Trending', 'Most Visited', 'New Gainers', 'Real-World Assets'].map((tab) => (
+                           <button key={tab} onClick={() => setActiveTab(tab)}
+                               className={`px-3 py-2 text-sm font-semibold transition-colors flex-shrink-0 ${activeTab === tab ? 'text-white border-b-2 border-blue-500' : 'text-gray-400 hover:text-white'}`}>
+                               {tab}
+                           </button>
+                        ))}
+                    </div>
+    
+                    <StockTable 
+                        stocks={displayedStocks} 
+                        watchlist={watchlist} 
+                        onToggleWatchlist={toggleWatchlist}
+                        onStockSelect={handleStockSelect}
+                    />
+                </main>
+            ) : (
+                selectedStock && <StockDetailPage 
+                    stock={selectedStock} 
+                    onBack={handleBackToDashboard} 
+                    balance={balance} 
+                    onPlaceOrder={handlePlaceOrder}
+                />
+            )}
+        </div>
+    );
+};
+
+export default CoinMarketCapBlackDashboard;

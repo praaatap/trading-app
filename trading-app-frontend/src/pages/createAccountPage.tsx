@@ -1,5 +1,5 @@
 import React, { useState, FC, SVGProps, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link , useNavigate } from 'react-router-dom';
 
 // --- Type Definitions ---
 type FormType = 'signup' | 'signin';
@@ -34,7 +34,7 @@ const TrendingUpIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
 const SignUpPage: FC = () => {
     const [formType, setFormType] = useState<FormType>('signup');
     const [bgOffset, setBgOffset] = useState<number>(0);
-
+    const navigate = useNavigate();
     useEffect(() => {
         const handleScroll = () => setBgOffset(window.pageYOffset * 0.08);
         window.addEventListener('scroll', handleScroll);
@@ -42,8 +42,8 @@ const SignUpPage: FC = () => {
     }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log(`Submitting ${formType} form`);
+       navigate('/home');
+       e.preventDefault();
     };
 
     return (
@@ -133,6 +133,7 @@ const SignUpPage: FC = () => {
 
                                     <button type="submit" 
                                         className="w-full bg-amber-400 text-black font-bold py-3 px-4 rounded-xl hover:bg-amber-300 hover:scale-105 transform transition-all shadow-lg"
+                                        onClick={handleSubmit}
                                     >
                                         {formType === 'signup' ? 'Create Account' : 'Sign In'}
                                     </button>
