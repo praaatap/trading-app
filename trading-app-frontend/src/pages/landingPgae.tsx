@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, ReactNode, FC, SVGProps } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import HeaderLogoComponent from '../components/headerLogo';
 
 // --- Type Definitions ---
 interface UseOnScreenOptions extends IntersectionObserverInit {
@@ -125,14 +126,11 @@ const MinimalistStockLandingPage: FC = () => {
             <div className="relative z-10 flex flex-col min-h-screen">
                 <header className="py-6 px-4 md:px-8">
                     <div className="container mx-auto flex justify-between items-center">
-                        <div className="flex items-center text-xl font-bold">
-                            <TrendingUpIcon className="w-6 h-6 mr-2 text-gray-300"/>
-                            <span className="text-white">VyaparTrade</span>
-                        </div>
+                        <HeaderLogoComponent />
                         <nav className="hidden md:flex items-center space-x-8 text-gray-400">
-                            <a href="#features" className="hover:text-white transition-colors">Features</a>
-                            <a href="#markets" className="hover:text-white transition-colors">Markets</a>
-                            <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+                            <Link to="/features" className="hover:text-white transition-colors">Features</Link>
+                            <Link to="/markets" className="hover:text-white transition-colors">Markets</Link>
+                            <Link to="/contact" className="hover:text-white transition-colors">Contact</Link>
                         </nav>
                     </div>
                 </header>

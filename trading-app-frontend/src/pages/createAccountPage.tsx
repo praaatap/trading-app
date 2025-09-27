@@ -1,40 +1,51 @@
-import { useState, FC, SVGProps } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, FC, SVGProps, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Make sure react-router-dom is installed
 
 // --- Type Definitions ---
 type FormType = 'signup' | 'signin';
 
 // --- SVG Icon Components ---
-const BarChartIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20V16"/></svg> );
-const ShieldCheckIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> );
-const ZapIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> );
-const TrendingUpIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> );
+const BarChartIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M12 20V10"/>
+        <path d="M18 20V4"/>
+        <path d="M6 20V16"/>
+    </svg>
+);
+const ShieldCheckIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="m9 12 2 2 4-4"/>
+    </svg>
+);
+const ZapIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </svg>
+);
+const TrendingUpIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+    </svg>
+);
 
 // --- Main Component ---
 const SignUpPage: FC = () => {
     const [formType, setFormType] = useState<FormType>('signup');
     const [bgOffset, setBgOffset] = useState<number>(0);
-    const navigate = useNavigate();
 
-    // Parallax effect to match landing page
-    useState(() => {
+    useEffect(() => {
         const handleScroll = () => {
             setBgOffset(window.pageYOffset * 0.1);
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    });
+    }, []);
 
-    const handleSignUp = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle signup logic here
-        navigate('/dashboard'); // Redirect after successful signup
-    };
-
-    const handleSignIn = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Handle signin logic here
-        navigate('/dashboard'); // Redirect after successful signin
+        console.log(`Submitting ${formType} form`);
     };
 
     return (
@@ -52,7 +63,7 @@ const SignUpPage: FC = () => {
                 }
             `}</style>
 
-            {/* Background Image & Overlay - Matching Landing Page */}
+            {/* Background */}
             <div className="absolute inset-0 z-0 overflow-hidden">
                 <div 
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-out"
@@ -62,8 +73,7 @@ const SignUpPage: FC = () => {
                     }}
                 ></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-[#0a0a0a]"></div>
-                
-                {/* Floating Background Symbols - Matching Landing Page */}
+
                 {['RELIANCE', 'TCS', 'HDFCBANK'].map((symbol, i) => (
                     <span key={symbol} className="floating-symbol absolute text-white/5 font-bold text-4xl md:text-6xl" style={{
                         left: `${15 + i * 35}%`,
@@ -73,33 +83,31 @@ const SignUpPage: FC = () => {
             </div>
 
             <div className="relative z-10 flex flex-col min-h-screen">
-                {/* Header - Matching Landing Page */}
+                {/* Header */}
                 <header className="py-6 px-4 md:px-8">
                     <div className="container mx-auto flex justify-between items-center">
-                        <div className="flex items-center text-xl font-bold">
+                        <Link to="/" className="flex items-center text-xl font-bold cursor-pointer">
                             <TrendingUpIcon className="w-6 h-6 mr-2 text-gray-300"/>
                             <span className="text-white">VyaparTrade</span>
-                        </div>
+                        </Link>
                         <nav className="hidden md:flex items-center space-x-8 text-gray-400">
-                            <a href="/" className="hover:text-white transition-colors">Home</a>
-                            <a href="#features" className="hover:text-white transition-colors">Features</a>
-                            <a href="#markets" className="hover:text-white transition-colors">Markets</a>
+                            <Link to="/" className="hover:text-white transition-colors">Home</Link>
+                            <Link to="/features" className="hover:text-white transition-colors">Features</Link>
+                            <Link to="/markets" className="hover:text-white transition-colors">Markets</Link>
                         </nav>
                     </div>
                 </header>
 
                 <main className="flex-grow flex items-center justify-center px-4 py-8">
                     <div className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                        
-                        {/* Left Side: Form */}
-                        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-8 md:p-12">
+                        {/* Form */}
+                        <div className="bg-black border border-white/10 rounded-xl p-8 md:p-12">
                             <div className="w-full max-w-md mx-auto">
-                                
-                                {/* Tab Navigation - Updated to match landing page style */}
-                                <div className="bg-black/30 backdrop-blur-sm p-1 rounded-lg flex items-center mb-8 border border-white/5">
+                                {/* Tab Navigation */}
+                                <div className="bg-black p-1 rounded-lg flex items-center mb-8 border border-white/10">
                                     <button 
                                         onClick={() => setFormType('signup')}
-                                        className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${
+                                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                                             formType === 'signup' 
                                                 ? 'bg-amber-400 text-black shadow-lg button-glow' 
                                                 : 'text-gray-400 hover:text-white bg-transparent'
@@ -109,7 +117,7 @@ const SignUpPage: FC = () => {
                                     </button>
                                     <button 
                                         onClick={() => setFormType('signin')}
-                                        className={`flex-1 py-3 text-sm font-medium rounded-lg transition-all duration-300 ${
+                                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                                             formType === 'signin' 
                                                 ? 'bg-amber-400 text-black shadow-lg button-glow' 
                                                 : 'text-gray-400 hover:text-white bg-transparent'
@@ -130,7 +138,7 @@ const SignUpPage: FC = () => {
                                     </p>
                                 </div>
 
-                                <form className="space-y-6" onSubmit={formType === 'signup' ? handleSignUp : handleSignIn}>
+                                <form className="space-y-6" onSubmit={handleSubmit}>
                                     {formType === 'signup' && (
                                         <div>
                                             <label htmlFor="fullname" className="text-sm font-medium text-gray-400 block mb-2">
@@ -139,7 +147,7 @@ const SignUpPage: FC = () => {
                                             <input 
                                                 type="text" 
                                                 id="fullname" 
-                                                className="w-full bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition placeholder-gray-500"
+                                                className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition placeholder-gray-500"
                                                 placeholder="Ankit Sharma" 
                                             />
                                         </div>
@@ -151,7 +159,7 @@ const SignUpPage: FC = () => {
                                         <input 
                                             type="email" 
                                             id="email" 
-                                            className="w-full bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition placeholder-gray-500"
+                                            className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition placeholder-gray-500"
                                             placeholder="you@example.com" 
                                         />
                                     </div>
@@ -162,14 +170,14 @@ const SignUpPage: FC = () => {
                                         <input 
                                             type="password" 
                                             id="password" 
-                                            className="w-full bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition placeholder-gray-500"
+                                            className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition placeholder-gray-500"
                                             placeholder="••••••••" 
                                         />
                                     </div>
 
                                     <button 
                                         type="submit" 
-                                        className="w-full bg-amber-400 text-black font-bold py-3 px-4 rounded-lg hover:bg-amber-300 transition-all duration-300 hover:scale-105 transform shadow-lg button-glow hover:cursor-pointer"
+                                        className="w-full bg-amber-400 text-black font-bold py-3 px-4 rounded-lg hover:bg-amber-300 transition-all duration-300 hover:scale-105 transform shadow-lg button-glow"
                                     >
                                         {formType === 'signup' ? 'Create Account' : 'Sign In'}
                                     </button>
@@ -177,44 +185,35 @@ const SignUpPage: FC = () => {
                             </div>
                         </div>
 
-                        {/* Right Side: Features - Matching Landing Page Style */}
-                        <div className="hidden lg:block">
-                            <div className="space-y-8">
-                                <div className="flex items-start">
-                                    <ZapIcon className="w-8 h-8 mr-4 text-amber-400 flex-shrink-0 mt-1" />
-                                    <div>
-                                        <h3 className="font-bold text-white text-xl mb-2">Real-time NSE/BSE Data</h3>
-                                        <p className="text-gray-400">Lightning-fast quotes and market depth for informed decisions.</p>
-                                    </div>
+                        {/* Right Side: Features */}
+                        <div className="hidden lg:flex flex-col justify-center space-y-8">
+                            <div className="flex items-start">
+                                <ZapIcon className="w-8 h-8 mr-4 text-amber-400 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="font-bold text-white text-xl mb-2">Real-time NSE/BSE Data</h3>
+                                    <p className="text-gray-400">Lightning-fast quotes and market depth for informed decisions.</p>
                                 </div>
-                                <div className="flex items-start">
-                                    <BarChartIcon className="w-8 h-8 mr-4 text-amber-400 flex-shrink-0 mt-1" />
-                                    <div>
-                                        <h3 className="font-bold text-white text-xl mb-2">Advanced Charting Tools</h3>
-                                        <p className="text-gray-400">Utilize professional-grade indicators and drawing tools.</p>
-                                    </div>
+                            </div>
+                            <div className="flex items-start">
+                                <BarChartIcon className="w-8 h-8 mr-4 text-amber-400 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="font-bold text-white text-xl mb-2">Advanced Charting Tools</h3>
+                                    <p className="text-gray-400">Utilize professional-grade indicators and drawing tools.</p>
                                 </div>
-                                <div className="flex items-start">
-                                    <ShieldCheckIcon className="w-8 h-8 mr-4 text-amber-400 flex-shrink-0 mt-1" />
-                                    <div>
-                                        <h3 className="font-bold text-white text-xl mb-2">Secure and Trusted</h3>
-                                        <p className="text-gray-400">Your investments are protected with industry-leading security.</p>
-                                    </div>
+                            </div>
+                            <div className="flex items-start">
+                                <ShieldCheckIcon className="w-8 h-8 mr-4 text-amber-400 flex-shrink-0 mt-1" />
+                                <div>
+                                    <h3 className="font-bold text-white text-xl mb-2">Secure and Trusted</h3>
+                                    <p className="text-gray-400">Your investments are protected with industry-leading security.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </main>
-
-                {/* Footer - Matching Landing Page */}
-                <footer className="py-8 px-4 md:px-8 mt-8">
-                    <div className="container mx-auto text-center text-gray-500">
-                        <p className="text-sm">&copy; {new Date().getFullYear()} VyaparTrade. All rights reserved.</p>
-                    </div>
-                </footer>
             </div>
         </div>
     );
 }
 
-export default SignUpPage;  
+export default SignUpPage;
