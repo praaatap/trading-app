@@ -61,7 +61,6 @@ const AnimatedElement: FC<AnimatedElementProps> = ({ children, className, delay 
 };
 
 // --- SVG Icon Components (Lucide React placeholders) ---
-const TrendingUpIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> );
 const TwitterIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.9 3.3 4.9s-1.7-.5-2.8-.7c-.8 2.3-2.3 3.9-2.3 3.9s-1.1-1.1-1.1-2.2c-.3 1.2-1.2 2.2-2.3 2.5s-2.3-.8-2.3-.8s-.3-2.1.2-3.4c-1.3.4-3.3 1.3-3.3 1.3s-1.7-1.4-1.7-3.3c0-2.3 2.3-4.9 2.3-4.9s-1.9.8-1.9 2.3c.7-2.3 2.5-4 2.5-4s1.4.2 2.8.7c.9-1.3 2.3-2.3 2.3-2.3s-.2 1.3.2 2.2c.5-1.1 1.4-2.2 2.8-2.2z"/></svg> );
 const LinkedinIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg> );
 
