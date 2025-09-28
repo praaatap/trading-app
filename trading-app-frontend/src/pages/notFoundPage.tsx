@@ -56,7 +56,7 @@ const NotFoundPage: FC = () => {
             <div className="relative z-10 flex flex-col min-h-screen">
                 {/* Header - Matching Theme */}
                 <header className="py-6 px-4 md:px-8">
-                 <HeaderLogoComponent />
+                 <HeaderLogoComponent windowLocation='/'/>
                 </header>
 
                 <main className="flex-grow flex flex-col items-center justify-center text-center px-4">
