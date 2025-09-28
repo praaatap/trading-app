@@ -1,5 +1,6 @@
 import React, { FC, SVGProps, useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MemoizedHeader } from '../components/header';
 
 // --- TYPE DEFINITIONS ---
 interface StockData {
@@ -42,39 +43,6 @@ const MenuIcon: FC<SVGProps<SVGSVGElement>> = (props) => (<svg {...props} viewBo
 const SearchIcon: FC<SVGProps<SVGSVGElement>> = (props) => ( <svg {...props} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" /></svg> );
 
 
-// --- HEADER COMPONENT (Integrated) ---
-const Header: FC = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const navigate = useNavigate();
-
-    return (
-        <header className="bg-black/50 backdrop-blur-lg border-b border-white/10 p-4 sticky top-0 z-50 flex-shrink-0">
-            <div className="container mx-auto flex items-center justify-between">
-                <div className="flex items-center space-x-4 md:space-x-8">
-                    <button onClick={() => navigate('/')} className="flex items-center space-x-2 text-white text-xl font-bold">
-                        <ChartBarIcon className="w-7 h-7 text-amber-400"/>
-                        <span className="hidden sm:inline text-amber-400">VyaparTrade</span>
-                    </button>
-                    <nav className="hidden md:flex items-center space-x-6 text-sm">
-                        {['Stocks', 'Exchanges', 'Community', 'Products'].map(item => (
-                            <a key={item} href="#" className="relative text-gray-300 hover:text-white transition-colors duration-300 after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:w-0 after:bg-amber-400 after:transition-all after:duration-300 hover:after:w-full">{item}</a>
-                        ))}
-                    </nav>
-                </div>
-                <div className="hidden md:flex items-center space-x-3">
-                    <button className="text-gray-300 font-medium px-4 py-2 rounded-full text-sm hover:bg-white/10 hover:text-white transition-colors">Log In</button>
-                    <button className="bg-amber-400 text-black font-bold px-5 py-2 rounded-full text-sm hover:bg-amber-300 transition-all duration-300 transform hover:scale-105 whitespace-nowrap">Sign Up</button>
-                </div>
-                <div className="md:hidden">
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-300 hover:text-white transition-colors">
-                        <MenuIcon className={`w-7 h-7 transition-transform duration-300 ${isMenuOpen ? 'rotate-90' : ''}`}/>
-                    </button>
-                </div>
-            </div>
-        </header>
-    );
-};
-const MemoizedHeader = React.memo(Header);
 
 // --- TRADING VIEW CHART ---
 interface TradingViewChartProps { symbol: string; }

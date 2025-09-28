@@ -1,7 +1,30 @@
-import React, { FC } from 'react';
+import React, { FC, SVGProps, useMemo } from 'react';
 import { StockData } from '../types/dataTypes';
-import { StarIcon } from './common/Icons';
-import { SmallSparkline } from './common/SmallSparkline';
+
+// --- HELPER COMPONENTS (Integrated) ---
+
+const StarIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
+    <svg {...props} viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" strokeWidth="1">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+    </svg>
+);
+
+const SmallSparkline: FC<{ data: number[]; isPositive: boolean }> = React.memo(({ data, isPositive }) => {
+    const color = isPositive ? '#22c55e' : '#ef4444'; // Using green/red for consistency
+    const points = useMemo(() =>
+        data.map((d, i) => `${(i / (data.length - 1)) * 100},${30 - (d / 100) * 25}`).join(' '),
+        [data]
+    );
+
+    return (
+        <svg viewBox="0 0 100 30" className="w-full h-10" preserveAspectRatio="none">
+            <polyline fill="none" stroke={color} strokeWidth="2.5" points={points} />
+        </svg>
+    );
+});
+
+
+// --- MAIN TABLE COMPONENTS ---
 
 interface StockTableProps {
     stocks: StockData[];
@@ -10,7 +33,6 @@ interface StockTableProps {
     onStockSelect: (stock: StockData) => void;
 }
 
-// The StockRow component contains the responsive logic for hiding/showing columns
 const StockRow: FC<{
     stock: StockData;
     index: number;
@@ -35,10 +57,10 @@ const StockRow: FC<{
 
     return (
         <tr
-            className="border-b border-white/10 group hover:bg-white/5 cursor-pointer transition-colors duration-150"
+            className="border-b border-white/10 group hover:bg-amber-400/10 cursor-pointer transition-colors duration-75"
             onClick={() => onStockSelect(stock)}
         >
-            <td className="px-2 sm:px-4 py-4 text-center">
+            <td className="px-2 sm:px-4 py-3 text-center">
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -51,41 +73,37 @@ const StockRow: FC<{
                     />
                 </button>
             </td>
-            <td className="px-2 sm:px-4 py-4 text-right text-gray-400">{index + 1}</td>
-            <td className="px-2 sm:px-4 py-4">
+            <td className="px-2 sm:px-4 py-3 text-right text-gray-400">{index + 1}</td>
+            <td className="px-2 sm:px-4 py-3">
                 <div className="flex items-center space-x-3">
                     <img src={stock.logoUrl} alt={stock.name} className="w-8 h-8 rounded-full" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/32?text=?')} />
                     <div>
-                        {/* On small screens, show symbol on top */}
                         <p className="text-white font-semibold sm:hidden">{stock.symbol}</p>
                         <p className="text-white font-semibold hidden sm:block">{stock.name}</p>
                         <p className="text-gray-500 text-sm hidden sm:block">{stock.symbol}</p>
                     </div>
                 </div>
             </td>
-            <td className="px-2 sm:px-4 py-4 text-right font-semibold text-white">{formatCurrency(stock.ltp)}</td>
+            <td className="px-2 sm:px-4 py-3 text-right font-semibold text-white">{formatCurrency(stock.ltp)}</td>
             
-            {/* Hidden on mobile */}
-            <td className={`px-4 py-4 text-right font-semibold hidden md:table-cell ${stock.changePercent1h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <td className={`px-4 py-3 text-right font-semibold hidden md:table-cell ${stock.changePercent1h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {stock.changePercent1h >= 0 ? '▲' : '▼'} {Math.abs(stock.changePercent1h).toFixed(2)}%
             </td>
             
-            <td className={`px-2 sm:px-4 py-4 text-right font-semibold ${isPositive24h ? 'text-green-500' : 'text-red-500'}`}>
+            <td className={`px-2 sm:px-4 py-3 text-right font-semibold ${isPositive24h ? 'text-green-500' : 'text-red-500'}`}>
                 {isPositive24h ? '▲' : '▼'} {Math.abs(stock.changePercent).toFixed(2)}%
             </td>
 
-            {/* Hidden on mobile */}
-            <td className={`px-4 py-4 text-right font-semibold hidden md:table-cell ${stock.changePercent7d >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <td className={`px-4 py-3 text-right font-semibold hidden md:table-cell ${stock.changePercent7d >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {stock.changePercent7d >= 0 ? '▲' : '▼'} {Math.abs(stock.changePercent7d).toFixed(2)}%
             </td>
 
-            {/* Hidden on mobile and tablet */}
-            <td className="px-4 py-4 text-right text-white font-semibold hidden lg:table-cell">{formatLargeNumber(stock.marketCap)}</td>
+            <td className="px-4 py-3 text-right text-white font-semibold hidden lg:table-cell">{formatLargeNumber(stock.marketCap)}</td>
             
-            <td className="px-2 sm:px-4 py-4 w-24 md:w-40">
+            <td className="px-2 sm:px-4 py-3 w-24 md:w-40">
                 <SmallSparkline data={stock.sparkline} isPositive={isPositive24h} />
             </td>
-            <td className="px-2 sm:px-4 py-4 text-right w-24">
+            <td className="px-2 sm:px-4 py-3 text-right w-24">
                 <button
                     onClick={(e) => e.stopPropagation()}
                     className="bg-amber-400 text-black font-bold px-4 py-1.5 rounded-md text-xs opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-amber-300"
@@ -131,3 +149,4 @@ export const StockTable: FC<StockTableProps> = React.memo(({ stocks, watchlist, 
         </div>
     );
 });
+

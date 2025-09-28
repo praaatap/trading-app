@@ -4,7 +4,6 @@ import SignUpPage from "./pages/createAccountPage";
 import NotFoundPage from "./pages/notFoundPage";
 import DashboardPage from "./pages/DashboardPage";
 import StockDetailPage from "./pages/StockDetailPage";
-
 const AboutPage = () => <h1>About Us</h1>;
 
 function App() {

@@ -5,7 +5,7 @@ import { MarketMetricCard } from '../components/marketMetricsCard';
 import { StockTable } from '../components/stockTable';
 import { TrendingTabs } from '../components/TrendingTabs';
 import { useMockMarketUpdates, generateSmallRandomSparkline } from '../data/marketData';
-import { MarketMetric, StockData } from '../types/dataTypes';
+import type { MarketMetric, StockData } from '../types/dataTypes';
 
 
 const DashboardPage: FC = () => {
