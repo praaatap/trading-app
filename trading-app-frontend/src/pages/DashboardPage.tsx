@@ -1,4 +1,4 @@
-import  { FC, useState, useMemo, useCallback } from 'react';
+import React, { FC, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MemoizedHeader } from '../components/header';
 import { MarketMetricCard } from '../components/marketMetricsCard';
@@ -63,21 +63,22 @@ const DashboardPage: FC = () => {
     }, [stocks]);
 
     return (
-        <div className="bg-black text-gray-300 min-h-screen font-sans">
+        <div className="bg-[#0a0a0a] text-gray-200 min-h-screen font-['Inter',_sans-serif]">
             <MemoizedHeader />
-            <main className="container mx-auto p-4 md:p-6 space-y-6">
+            <main className="container mx-auto p-4 md:p-6 space-y-8">
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
                     {marketMetrics.map(metric => <MarketMetricCard key={metric.title} metric={metric} />)}
                 </div>
                 
-                <TrendingTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-
-                <StockTable
-                    stocks={displayedStocks}
-                    onToggleWatchlist={toggleWatchlist}
-                    onStockSelect={handleStockSelect}
-                    watchlist={new Set(watchlist)}
-                />
+                <div>
+                    <TrendingTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                    <StockTable
+                        stocks={displayedStocks}
+                        watchlist={watchlist}
+                        onToggleWatchlist={toggleWatchlist}
+                        onStockSelect={handleStockSelect}
+                    />
+                </div>
             </main>
         </div>
     );

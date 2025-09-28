@@ -30,7 +30,8 @@ const SunIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
 
 // Helper function to get the correct icon based on the metric title
 const getMetricIcon = (title: string) => {
-    const iconProps = { className: "w-5 h-5 text-gray-400" };
+    // Updated icon style to match the amber theme
+    const iconProps = { className: "w-4 h-4 text-amber-400" };
     switch (title) {
         case 'Market Cap': return <ScaleIcon {...iconProps} />;
         case 'NIFTY 50': return <TrendingUpIcon {...iconProps} />;
@@ -57,7 +58,8 @@ const Gauge: FC<{ value: number; label: string }> = React.memo(({ value, label }
                     <div className="text-xs text-gray-400 -mt-1">{label}</div>
                 </div>
             </div>
-            <div className="absolute bottom-0 left-1/2 w-0.5 h-2 bg-white transition-transform duration-500" style={{ transformOrigin: 'bottom center', transform: `translateX(-50%) rotate(${rotation}deg)` }}></div>
+            {/* Updated pointer to amber color */}
+            <div className="absolute bottom-0 left-1/2 w-0.5 h-2 bg-amber-400 transition-transform duration-500" style={{ transformOrigin: 'bottom center', transform: `translateX(-50%) rotate(${rotation}deg)` }}></div>
         </div>
     );
 });
@@ -68,7 +70,7 @@ export const MarketMetricCard: FC<{ metric: MarketMetric }> = React.memo(({ metr
     const isPositive = metric.change ? metric.change >= 0 : true;
     
     return (
-        <div className="bg-gray-900/40 border border-white/10 rounded-xl p-4 min-h-[140px] transition-all duration-300 hover:border-white/20 hover:bg-gray-900/60 backdrop-blur-sm">
+        <div className="bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-lg transition-all duration-300 hover:border-white/20 hover:bg-black/30 min-h-[140px]">
             <div className="flex items-center space-x-2 text-sm text-gray-400 mb-3">
                 {getMetricIcon(metric.title)}
                 <span>{metric.title}</span>
@@ -77,7 +79,7 @@ export const MarketMetricCard: FC<{ metric: MarketMetric }> = React.memo(({ metr
             <div className="flex items-center justify-between mb-3">
                 <span className="text-2xl font-semibold text-white">{metric.value}</span>
                 {metric.change && (
-                    <span className={`flex items-center text-sm font-semibold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`flex items-center text-sm font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
                         {isPositive ? '▲' : '▼'} {Math.abs(metric.change).toFixed(2)}%
                     </span>
                 )}
@@ -87,8 +89,9 @@ export const MarketMetricCard: FC<{ metric: MarketMetric }> = React.memo(({ metr
             {metric.type === 'gauge' && metric.gaugeValue && <div className="flex justify-center pt-1"><Gauge value={metric.gaugeValue} label={metric.gaugeLabel || ''} /></div>}
             {metric.type === 'progress' && metric.progressValue && (
                 <div className="pt-1">
-                    <div className="w-full bg-white/10 rounded-full h-2 my-2">
-                        <div className="bg-gradient-to-r from-blue-500 to-teal-400 h-2 rounded-full" style={{ width: `${metric.progressValue}%` }}></div>
+                    <div className="w-full bg-gray-800 rounded-full h-1.5 my-2">
+                        {/* Updated progress bar gradient to match amber theme */}
+                        <div className="bg-gradient-to-r from-amber-400 to-amber-600 h-1.5 rounded-full" style={{ width: `${metric.progressValue}%` }}></div>
                     </div>
                     <div className="flex justify-between text-xs text-gray-400">
                         <span>{metric.progressStartLabel}</span>
