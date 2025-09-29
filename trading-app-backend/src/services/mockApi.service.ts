@@ -1,40 +1,64 @@
-export const getMockIndices = () => ([
-  { name: 'SENSEX', value: 75418.04, change: 234.31, changePercent: 0.31 },
-  { name: 'NIFTY 50', value: 22967.65, change: 75.95, changePercent: 0.33 },
-]);
+import { PrismaClient } from '@prisma/client';
 
-export const getMockStocks = () => ([
-  { symbol: 'RELIANCE', name: 'Reliance Industries', ltp: 2950.75, change: 12.30, changePercent: 0.42 },
-  { symbol: 'TCS', name: 'Tata Consultancy', ltp: 3890.10, change: -5.50, changePercent: -0.14 },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', ltp: 1580.45, change: 8.10, changePercent: 0.52 },
-  { symbol: 'INFY', name: 'Infosys Ltd', ltp: 1550.00, change: -10.00, changePercent: -0.64 },
-]);
+const initialStockData = [
+  { symbol: 'RELIANCE', name: 'Reliance', ltp: 2950.75, changePercent: 0.42, marketCap: 20000000000000, logoUrl: 'https://cdn.worldvectorlogo.com/logos/reliance-industries-limited.svg' },
+  { symbol: 'TCS', name: 'TCS', ltp: 3890.10, changePercent: -0.14, marketCap: 14000000000000, logoUrl: 'https://cdn.worldvectorlogo.com/logos/tata-consultancy-services.svg' },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank', ltp: 1580.45, changePercent: 0.52, marketCap: 12000000000000, logoUrl: 'https://cdn.worldvectorlogo.com/logos/hdfc-bank-logo.svg' },
+  { symbol: 'INFY', name: 'Infosys', ltp: 1550.00, changePercent: -0.64, marketCap: 6500000000000, logoUrl: 'https://cdn.worldvectorlogo.com/logos/infosys-logo-2.svg' },
+  { symbol: 'ICICIBANK', name: 'ICICI Bank', ltp: 1125.80, changePercent: 0.22, marketCap: 8000000000000, logoUrl: 'https://cdn.worldvectorlogo.com/logos/icici-bank-2.svg' },
+];
 
-export const getMockStockDetail = (symbol: string) => {
-    const stock = getMockStocks().find(s => s.symbol === symbol);
-    if (!stock) return null;
+const prisma = new PrismaClient();
 
-    return {
-        ...stock,
-        open: stock.ltp - stock.change,
-        high: stock.ltp + 20.5,
-        low: stock.ltp - 25.0,
-        volume: 5_234_876,
-        marketCap: '20,00,000 Cr',
-        historicalData: [],
-        orderBook: {
-            bids: [ { price: stock.ltp - 0.05, orders: 15, quantity: 1250 }, /* ... */ ],
-            asks: [ { price: stock.ltp + 0.05, orders: 12, quantity: 1100 }, /* ... */ ],
+export class MarketDataService {
+    private static instance: MarketDataService;
+    private stocks: Map<string, any> = new Map();
+
+    private constructor() {
+        this.initializeData();
+        setInterval(() => this.updatePrices(), 3000); // Simulate live prices
+    }
+
+    public static getInstance(): MarketDataService {
+        if (!MarketDataService.instance) {
+            MarketDataService.instance = new MarketDataService();
         }
-    };
-};
+        return MarketDataService.instance;
+    }
 
-export const getMockHoldings = () => ([
-  { symbol: 'RELIANCE', quantity: 50, avgPrice: 2800.50, ltp: 2950.75 },
-  { symbol: 'INFY', quantity: 150, avgPrice: 1600.00, ltp: 1550.00 },
-]);
+    private async initializeData() {
+        const count = await prisma.stock.count();
+        if (count === 0) {
+            console.log('Seeding database with initial stock data...');
+            await prisma.stock.createMany({
+                data: initialStockData,
+            });
+        }
+        
+        const dbStocks = await prisma.stock.findMany();
+        dbStocks.forEach((stock: any) => this.stocks.set(stock.symbol, stock));
+        console.log('Market data service initialized.');
+    }
 
-export const getMockWatchlist = () => ([
-    { symbol: 'TATAMOTORS', ltp: 980.70, changePercent: 1.2 },
-    { symbol: 'ITC', ltp: 430.25, changePercent: -0.5 },
-]);
+    private updatePrices() {
+        for (let stock of this.stocks.values()) {
+            const change = (Math.random() - 0.5) * 0.005;
+            const oldLtp = stock.ltp;
+            stock.ltp = parseFloat((stock.ltp * (1 + change)).toFixed(2));
+            stock.changePercent = parseFloat(((stock.ltp / oldLtp - 1) * 100).toFixed(2));
+        }
+    }
+
+    public getStocks() { return Array.from(this.stocks.values()); }
+    public getStock(symbol: string) { return this.stocks.get(symbol); }
+    
+    public generateOrderBook(symbol: string) {
+        const stock = this.getStock(symbol);
+        if(!stock) return null;
+
+        const asks = Array.from({ length: 20 }, (_, i) => ({ price: parseFloat((stock.ltp + (i + 1) * 0.05).toFixed(2)), size: Math.floor(Math.random() * 1000) + 100, total: Math.floor(Math.random() * 50000) + 10000 }));
+        const bids = Array.from({ length: 20 }, (_, i) => ({ price: parseFloat((stock.ltp - (i + 1) * 0.05).toFixed(2)), size: Math.floor(Math.random() * 1000) + 100, total: Math.floor(Math.random() * 50000) + 10000 }));
+        
+        return { asks: asks.reverse(), bids };
+    }
+}

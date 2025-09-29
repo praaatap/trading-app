@@ -1,22 +1,12 @@
-import { Router } from "express";
-import { signUp, signIn, getMyProfile } from './auth.controller'; // Remove .ts
-import { authMiddleware } from '../../middleware/auth.middleware'; // Remove .ts
+import { Router } from 'express';
+import { registerUser, loginUser, getCurrentUser } from './auth.controller.js';
+import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { validateRegistration, validateLogin } from '../../middleware/validators.js';
 
 const router = Router();
 
-// @route   POST /api/auth/signup
-// @desc    Register a new user
-// @access  Public
-router.post("/signup", signUp);
-
-// @route   POST /api/auth/signin
-// @desc    Authenticate user and get token
-// @access  Public
-router.post("/signin", signIn);
-
-// @route   GET /api/auth/me
-// @desc    Get current user's profile
-// @access  Private (requires token)
-router.get("/me", authMiddleware, getMyProfile);
+router.post('/register', validateRegistration, registerUser);
+router.post('/login', validateLogin, loginUser);
+router.get('/me', authMiddleware, getCurrentUser);
 
 export default router;

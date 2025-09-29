@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Or your database of choice
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String      @id @default(cuid())
+  email     String      @unique
+  name      String
+  password  String
+  createdAt DateTime    @default(now())
+  watchlist Watchlist[]
+}
+
+model Stock {
+  id             String      @id @default(cuid())
+  symbol         String      @unique
+  name           String
+  ltp            Float
+  changePercent  Float
+  marketCap      Float
+  logoUrl        String
+  watchlistItems Watchlist[]
+}
+
+model Watchlist {
+  id      String @id @default(cuid())
+  userId  String
+  stockId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stock Stock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stockId])
+}

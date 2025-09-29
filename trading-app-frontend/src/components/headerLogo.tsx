@@ -12,7 +12,7 @@ export default function HeaderLogoComponent({ windowLocation }: HeaderLogoProps)
         to={windowLocation}
         className="flex items-center text-xl font-bold cursor-pointer"
       >
-        <TrendingUpIcon className="w-6 h-6 mr-2 text-gray-300" />
+        <TrendingUpIcon className="w-6 h-6 mr-2  text-yellow-500" />
         <span className="text-white">VyaparTrade</span>
       </Link>
     </div>
