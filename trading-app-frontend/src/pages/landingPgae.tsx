@@ -231,7 +231,9 @@ const MinimalistStockLandingPage: FC = () => {
                 Open Account
               </button>
               <button className="bg-gray-800 text-white font-bold w-full sm:w-auto px-8 py-3 rounded-lg border border-gray-700 hover:bg-gray-700 hover:border-gray-600 transition-all duration-300 hover:scale-105 transform hover:cursor-pointer ">
-                Browse Markets
+                <Link to='/home' >
+                  Browse Markets
+                </Link>
               </button>
             </AnimatedElement>
           </section>
